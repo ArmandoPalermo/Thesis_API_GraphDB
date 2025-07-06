@@ -1,0 +1,145 @@
+\documentclass{article}
+
+\usepackage[italian]{babel} 
+\usepackage[a4paper, left=3cm, right=3cm]{geometry}
+\usepackage{graphicx}
+\usepackage[utf8]{inputenc}
+\usepackage{titlesec}
+\usepackage{float}
+\usepackage{wrapfig,lipsum}
+\usepackage{fancyhdr, etoolbox}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{url}
+\usepackage{setspace}
+\usepackage{longtable}
+\usepackage{emptypage}
+\usepackage{listings}
+
+
+
+
+\fancypagestyle{mystyle}{
+    \fancyhead{}
+    \fancyhead[OL]{\slshape \leftmark}
+    \fancyfoot[C]{\thepage}
+}
+
+
+
+
+
+
+\begin{document}
+
+\begin{titlepage}
+\begin{figure}[H]
+    \centering
+    \includegraphics[keepaspectratio=true,scale=0.4]{Images/logounipg}
+\end{figure}
+
+\begin{center}
+    \LARGE{UNIVERSIT\`A DEGLI STUDI DI PERUGIA}
+    \vspace{5mm}
+    \\ \Large{DIPARTIMENTO DI INGEGNERIA}
+    \vspace{5mm}
+    \\ \LARGE{Laurea Triennale in \\ INGEGNERIA INFORMATICA ED ELETTRONICA}
+   
+\end{center}
+
+\vspace{8mm}
+\begin{center}
+    {\LARGE{\bf Sviluppo di un'API RESTful per   l'accesso \\ \vspace{1mm}a dati di blockchain clusterizzati su base \\ \vspace{1mm}  temporale e  memorizzati  in un \\ \vspace{3mm} database a grafo }}
+    
+    % Se il titolo è abbastanza corto da stare su una riga, si può usare
+     
+\end{center}
+\vspace{20mm}
+
+\begin{minipage}[t]{0.47\textwidth}
+	{\large{Relatore}{\normalsize\vspace{3mm}
+	\bf\\ \large{Prof. Luca GRILLI}}}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.47\textwidth}\raggedleft
+	{\large{Candidato}{\normalsize\vspace{3mm} \bf\\ \large{Armando PALERMO}}}
+\end{minipage}
+
+\begin{center}
+\vfill
+\Large Anno accademico 2023/2024
+\end{center}
+
+
+
+
+\end{titlepage}
+
+
+\newpage
+\thispagestyle{empty}
+\mbox{}
+\newpage
+
+\tableofcontents 
+
+
+
+\newpage
+\section{Introduzione}
+
+\begin{onehalfspacing}
+\input{cap1-rev.tex}
+\end{onehalfspacing}
+
+
+\clearpage
+\section{Concetti preliminari}
+
+\begin{onehalfspacing}
+\input{cap2.tex}
+\end{onehalfspacing}
+
+\clearpage
+\section{Tecnologie utilizzate}
+
+\begin{onehalfspacing}
+\input{cap3}
+\end{onehalfspacing}
+
+\clearpage
+
+\section{Obiettivo del progetto}
+\begin{onehalfspacing}
+\input{cap4}
+\end{onehalfspacing}
+
+\clearpage
+\section{Progetto ed implementazione dell'API}
+\begin{onehalfspacing}
+  \input{cap5}  
+\end{onehalfspacing}
+
+\clearpage
+\section{Test e validazione \textit{API}}
+\begin{onehalfspacing}
+  \input{cap6}  
+\end{onehalfspacing}
+
+
+
+\clearpage
+\section{Conclusioni}
+\begin{onehalfspacing}
+\input{cap7}  
+\end{onehalfspacing}
+\clearpage
+
+\begin{onehalfspacing}
+\section{Bibliografia}
+\renewcommand{\section}[2]{}
+\bibliography{bibliography}
+\bibliographystyle{unsrt}  
+\end{onehalfspacing}
+
+\end{document}
