@@ -1,0 +1,340 @@
+
+***** CREAZIONE BLOCKS NODES *****
+LOAD CSV WITH HEADERS FROM 'file:///Blocchi.csv' AS row WITH split(row.time,' ')AS date, row MERGE (:Blocks {id: row.id, hash: row.hash, time: datetime(date[0]+'T'+date[1]+'Z'),transaction_count: row.transaction_count, input_count: row.input_count, output_count: row.output_count, input_total: row.input_total, output_total: row.output_total, fee_total: row.fee_total, guessed_miner: row.guessed_miner})
+
+***** CREAZIONE TRANSACTIONS NODES *****
+LOAD CSV WITH HEADERS FROM 'file:///TX.csv' AS row WITH split(row.time,' ')AS date, row MERGE (:Transaction {block_id: row.block_id, hash: row.hash, input_count: row.input_count, output_count: row.output_count, input_total: row.input_total, output_total: row.output_total, fee: row.fee, is_coinbase: row.is_coinbase})
+
+***** RELAZIONI TRA BLOCCHI *****
+LOAD CSV WITH HEADERS FROM 'file:///IN_20240105.csv' AS row MATCH (b:Blocks {id:row.block_id}), (b2:Blocks {id:row.spending_block_id})
+MERGE  (b)-[ib:inputToOutputB]->(b2) 
+SET ib.block_id=row.block_id, ib.spending_block_id=row.spending_block_id, ib.value=row.value, ib.is_from_coinbase = row.is_from_coinbase, ib.is_spendable= row.is_spendable, ib.value_usd = row.value_usd
+
+***** RELAZIONI TRA TRANSAZIONI *****
+LOAD CSV WITH HEADERS FROM 'file:///IN_20240105.csv' AS row MATCH (t:Transactions {hash:row.transaction_hash}), (t2:Transactions{hash:row.spending_transaction_hash})
+MERGE  (t)-[i:inputToOutputTX]->(t2) 
+SET i.transaction_hash=row.transaction_hash, i.spending_transaction_hash=row.spending_transaction_hash, i.value=row.value, i.is_from_coinbase = row.is_from_coinbase
+
+
+							'DEFINIZIONE CLUSTER E ATTRIBUTI'
+
+***** CREAZIONE H-CLUSTER NODES *****
+MATCH(b:Blocks)  WITH DISTINCT b.time.year+'-'+b.time.month+'-'+b.time.day +'T' + b.time.hour AS IDHour CREATE (h:hCluster{htime:IDHour})
+
+***** RELAZIONI TRA BLOCCHI E H-CLUSTER *****
+MATCH (b:Blocks),(h:hCluster) WHERE h.htime = b.time.year+'-'+b.time.month+'-'+b.time.day +'T' + b.time.hour MERGE (b)-[i:isBofH]->(h)
+
+*****  DEFINIZIONE ATTRIBUTI H-CLUSTER *****
+MATCH (b:Blocks)-[r:isBofH]->(h:hCluster)  WITH DISTINCT h,sum(toInteger(b.input_total))AS total_h_input,sum(toInteger(b.output_total)) AS total_h_output
+SET h.total_h_input =  total_h_output, h.total_h_output = total_h_input
+
+***** CREAZIONE D-CLUSTER NODES *****
+MATCH(b:Blocks)  WITH DISTINCT b.time.year+'-'+b.time.month+'-'+b.time.day  AS IDDay CREATE (d:dCluster{dtime:IDDay})
+
+***** RELAZIONI TRA H-CLUSTER E D-CLUSTER *****
+MATCH (d:dCluster),(h:hCluster) WHERE d.dtime = split(h.htime,'T')[0]  MERGE (h)-[i:isHofD]->(d)
+
+***** DEFINIZIONE ATTRIBUTI D-CLUSTER *****
+MATCH (h:hCluster)-[r:isHofD]->(d:dCluster)  WITH DISTINCT d,sum(toInteger(h.total_h_input))AS total_d_input,sum(toInteger(h.total_h_output)) AS total_d_output SET d.total_d_input =  total_d_output, d.total_d_output = total_d_input
+
+***** CREAZIONE M-CLUSTER NODES *****
+MATCH(b:Blocks)  WITH DISTINCT b.time.year+'-'+b.time.month  AS IDMonth CREATE (m:mCluster{dtime:IDMonth})
+
+***** RELAZIONI TRA D-CLUSTER E M-CLUSTER *****
+MATCH (d:dCluster),(m:mCluster) WITH d,m,split(d.dtime,'-')AS data  WHERE m.mtime = data[0]+'-'+ data[1]   MERGE (d)-[i:isDofM]->(m)
+
+***** DEFINIZIONE ATTRIBUTI M-CLUSTER *****
+MATCH (d:dCluster)-[r:isDofM]->(m:mCluster)  WITH DISTINCT m,sum(toInteger(d.total_d_input))AS total_m_input,sum(toInteger(d.total_d_output)) AS total_m_output set m.total_m_input =  total_m_output, m.total_m_output = total_m_input
+
+***** DEFINIZIONE Y-CLUSTER NODES *****
+MATCH(b:Blocks)  WITH DISTINCT b.time.year AS IDYear CREATE (y:yCluster{ytime:toString(IDYear)})
+
+***** RELAZIONI TRA M-CLUSTER E D-CLUSTER *****
+MATCH (y:yCluster),(m:mCluster) WITH y,split(m.mtime,'-')AS data,m  WHERE y.ytime = data[0]  MERGE  (m)-[i:isMofY]->(y)
+
+***** DEFINIZIONE ATTRIBUTI Y-CLUSTER *****
+MATCH (m:mCluster)-[r:isMofY]->(y:yCluster)  WITH DISTINCT y,sum(toInteger(m.total_m_input))AS total_y_input,sum(toInteger(m.total_m_output)) AS total_y_output SET y.total_y_input =  total_y_output, y.total_y_output = total_y_input
+
+
+						'DEFINIZIONE RELAZIONI TRA CLUSTER DELLO STESSO LIVELLO'
+
+
+***** DEFINIZIONE RELAZIONI TRA H-CLUSTER *****
+MATCH (b:Blocks)-[ih:isBofH]->(h:hCluster) ,(b2:Blocks)-[ih2:isBofH]->(h2:hCluster), (b)-[ib:inputToOutputB]->(b2) WITH DISTINCT h,h2,sum(toInteger(ib.value))AS hClusterFlow,sum(toFloat(ib.value_usd))AS hClusterFlowUSD MERGE (h)-[ih:inputToOutputH]->(h2) SET ih.value = hClusterFlow,ih.value_usd = hClusterFlowUSD
+
+***** DEFINIZIONE RELAZIONI TRA D-CLUSTER *****
+MATCH (h:hCluster)-[id:isHofD]->(d:dCluster) ,(h2:hCluster)-[id2:isHofD]->(d2:dCluster), (h)-[ih:inputToOutputH]->(h2) WITH DISTINCT d,d2,sum(toInteger(ih.value))AS hClusterFlowBitcoin, sum(toFloat(ih.value_usd))AS hClusterFlowUSD MERGE (d)-[iday:inputToOutputD]->(d2) SET iday.value = hClusterFlowBitcoin, iday.value_usd = hClusterFlowUSD
+
+***** DEFINIZIONE RELAZIONI TRA M-CLUSTER *****
+MATCH (d:dCluster)-[im:isDofM]->(m:mCluster) ,(d2:dCluster)-[im2:isDofM]->(m2:mCluster), (d)-[id:inputToOutputD]->(d2) WITH DISTINCT m,m2,sum(toInteger(id.value))AS hClusterFlowBitcoin, sum(toInteger(id.value_usd))AS hClusterFlowUSD MERGE (m)-[imonth:inputToOutputM]->(m2) SET imonth.value = hClusterFlowBitcoin, imonth.value_usd = hClusterFlowUSD
+
+***** DEFRINIZIONE RELAZIONI TRA Y-CLUSTER *****
+MATCH (m:mCluster)-[iy:isMofY]->(y:yCluster) ,(m2:mCluster)-[iy2:isMofY]->(y2:yCluster), (m)-[im:inputToOutputM]->(m2) WITH DISTINCT y,y2,sum(toInteger(im.value))AS hClusterFlowBitcoin, sum(toInteger(im.value_usd))AS hClusterFlowUSD MERGE (y)-[iyear:inputToOutputY]->(y2) SET iyear.value = hClusterFlowBitcoin, iyear.value_usd = hClusterFlowUSD
+
+						'DEFINIZIONE RELAZIONI TRA CLUSTER DIVERSI'
+
+***** RELAZIONI DA M-CLUSTER AD  Y-CLUSTER *****
+
+MATCH (m2:mCluster)-[io:inputToOutputM]->(m:mCluster)-[i:isMofY]->(y:yCluster)  WITH m2,y,sum(io.value) AS value, sum(io.value_usd) AS value_usd  MATCH (m2)-[iy:isMofY]->(y2:yCluster) MERGE (m2)-[ib:MoutputToYInput]->(y) set ib.value = value , ib.value_usd = value_usd
+
+***** RELAZIONI DA  Y-CLUSTER AD M-CLUSTER *****
+
+MATCH (m2:mCluster)-[io:inputToOutputM]->(m:mCluster)-[i:isMofY]->(y:yCluster),(m2)-[iy:isMofY]->(y2:yCluster) WHERE m2.mtime <> m.mtime WITH y2,m,io,sum(io.value) AS value,sum(io.value_usd) AS value_usd  MERGE (y2)-[ioy:YOutputToMInput]->(m) SET  ioy.value = value, ioy.value_usd = value_usd
+
+***** RELAZIONI DA D-CLUSTER AD Y-CLUSTER *****
+
+MATCH (d2:dCluster)-[io:inputToOutputD]->(d:dCluster)-[id:isDofM]->(m:mCluster)-[i:isMofY]->(y:yCluster)  WITH d2,y,sum(io.value) AS value, sum(io.value_usd) AS value_usd MATCH (d2)-[id2:isDofM]->(m2:mCluster)-[iy:isMofY]->(y2:yCluster) MERGE (d2)-[ib:DOutputToYInput]->(y) set ib.value = value , ib.value_usd = value_usd
+
+***** RELAZIONI DA Y-CLUSTER AD D-CLUSTER *****
+
+MATCH (d2:dCluster)-[io:inputToOutputD]->(d:dCluster)-[id:isDofM]->(m:mCluster)-[i:isMofY]->(y:yCluster),(d2)-[idy:isDofM]->(m2:mCluster)-[im:isMofY]->(y2:yCluster) WHERE d2.dtime <> d.dtime WITH y2,d,io,sum(io.value) AS value,sum(io.value_usd) AS value_usd  MERGE (y2)-[ioy:YOutputToDInput]->(d) SET  ioy.value = value, ioy.value_usd = value_usd
+
+***** RELAZIONI DA H-CLUSTER AD Y-CLUSTER *****
+
+MATCH (h2:hCluster)-[io:inputToOutputH]->(h:hCluster)-[ih:isHofD]->(d:dCluster)-[id:isDofM]->(m:mCluster)-[i:isMofY]->(y:yCluster)  WITH h2,y,io MATCH (h2)-[ih2:isHofD]->(d2:dCluster)-[id2:isDofM]->(m2:mCluster)-[iy:isMofY]->(y2:yCluster) MERGE (h2)-[ib:HOutputToYInput]->(y) set ib.value = io.value , ib.value_usd = io.value_usd
+
+***** RELAZIONI DA Y-CLUSTER AD H-CLUSTER *****
+
+MATCH (h2:hCluster)-[io:inputToOutputH]->(h:hCluster)-[ih:isHofD]->(d:dCluster)-[id:isDofM]->(m:mCluster)-[i:isMofY]->(y:yCluster),(h2)-[ih2:isHofD]->(d2:dCluster)-[idy:isDofM]->(m2:mCluster)-[im:isMofY]->(y2:yCluster) WHERE h2.htime <> h.htime WITH y2,h,io,sum(io.value) AS value,sum(io.value_usd) AS value_usd  MERGE (y2)-[ioy:YOutputToHInput]->(h) SET  ioy.value = value, ioy.value_usd = value_usd
+
+***** RELAZIONI DA BLOCKS AD Y-CLUSTER *****
+
+MATCH (b2:Blocks)-[io:inputToOutputB]->(b:Blocks)-[iblock:isBofH]->(h:hCluster)-[ih:isHofD]->(d:dCluster)-[id:isDofM]->(m:mCluster)-[i:isMofY]->(y:yCluster)  WITH b2,y,sum(io.value) AS value, sum(io.value_usd) AS value_usd MATCH (b2)-[iblock2:isBofH]->(h2:hCluster)-[ih2:isHofD]->(d2:dCluster)-[id2:isDofM]->(m2:mCluster)-[iy:isMofY]->(y2:yCluster) MERGE (b2)-[ib:BOutputToYInput]->(y) set ib.value = value , ib.value_usd = value_usd
+
+***** RELAZIONI DA Y-CLUSTER A BLOCKS *****
+
+MATCH (b2:Blocks)-[io:inputToOutputB]->(b:Blocks)-[iblock:isBofH]->(h:hCluster)-[ih:isHofD]->(d:dCluster)-[id:isDofM]->(m:mCluster)-[i:isMofY]->(y:yCluster),(b2)-[iblock2:isBofH]->(h2:hCluster)-[ih2:isHofD]->(d2:dCluster)-[idy:isDofM]->(m2:mCluster)-[im:isMofY]->(y2:yCluster) WHERE b2.time <> b.time WITH y2,b,io,sum(io.value) AS value,sum(io.value_usd) AS value_usd  MERGE (y2)-[ioy:YOutputToBInput]->(b) SET  ioy.value = value, ioy.value_usd = value_usd
+
+***** RELAZIONI DA BLOCKS AD H-CLUSTER *****
+
+MATCH (b2:Blocks)-[io:inputToOutputB]->(b:Blocks)-[iblock:isBofH]->(h:hCluster)  WITH b2,h,sum(io.value) AS value,sum(io.value_usd) AS value_usd MATCH (b2)-[iblock2:isBofH]->(h2:hCluster) MERGE (b2)-[ib:BOutputToHInput]->(h) set ib.value = value , ib.value_usd = value_usd
+
+***** RELAZIONI DA H-CLUSTER A BLOCKS *****
+
+MATCH (b2:Blocks)-[io:inputToOutputB]->(b:Blocks)-[iblock:isBofH]->(h:hCluster),(b2)-[iblock2:isBofH]->(h2:hCluster) WHERE b2.time <> b.time WITH h2,b,io,sum(io.value) AS value,sum(io.value_usd) AS value_usd  MERGE (h2)-[ioy:HOutputToBInput]->(b) SET  ioy.value = value, ioy.value_usd = value_usd
+
+***** RELAZIONI DA BLOCKS A D-CLUSTER *****
+
+MATCH (b2:Blocks)-[io:inputToOutputB]->(b:Blocks)-[iblock:isBofH]->(h:hCluster)-[ih:isHofD]->(d:dCluster) WITH b2,d,sum(io.value) AS value,sum(io.value_usd) AS value_usd MATCH (b2)-[iblock2:isBofH]->(h2:hCluster)-[ih2:isHofD]->(d2:dCluster) MERGE (b2)-[ib:BOutputToDInput]->(d) set ib.value = value , ib.value_usd = value_usd
+
+***** RELAZIONI DA D-CLUSTER A BLOCKS *****
+
+MATCH (b2:Blocks)-[io:inputToOutputB]->(b:Blocks)-[iblock:isBofH]->(h:hCluster)-[ih:isHofD]->(d:dCluster),(b2)-[iblock2:isBofH]->(h2:hCluster)-[ih2:isHofD]->(d2:dCluster) WHERE b2.time <> b.time WITH d2,b,io,sum(io.value) AS value,sum(io.value_usd) AS value_usd  MERGE (d2)-[ioy:DOutputToBInput]->(b) SET  ioy.value = value, ioy.value_usd = value_usd
+
+***** RELAZIONI DA BLOCKS  AD M-CLUSTER *****
+
+MATCH (b2:Blocks)-[io:inputToOutputB]->(b:Blocks)-[iblock:isBofH]->(h:hCluster)-[ih:isHofD]->(d:dCluster)-[id:isDofM]->(m:mCluster)  WITH b2,m,sum(io.value) AS value,sum(io.value_usd) AS value_usd MATCH (b2)-[iblock2:isBofH]->(h2:hCluster)-[ih2:isHofD]->(d2:dCluster)-[id2:isDofM]->(m2:mCluster) MERGE (b2)-[ib:BOutputToMInput]->(m) set ib.value = value , ib.value_usd = value_usd
+
+***** RELAZIONI DA M-CLUSTER A BLOCKS *****
+
+MATCH (m2:mCluster)<-[id2:isDofM]-(d2:dCluster)<-[ih2:isHofD]-(h2:hCluster)<-[iblock2:isBofH]-(b2:Blocks)-[io:inputToOutputB]->(b:Blocks)-[iblock:isBofH]->(h:hCluster)-[ih:isHofD]->(d:dCluster)-[id:isDofM]->(m:mCluster) WITH m2,b, sum(io.value) as value, sum(io.value_usd) as value_usd   MERGE (m2)-[ioy:MOutputToBInput]->(b) SET  ioy.value = value, ioy.value_usd = value_usd
+
+***** RELAZIONI DA D-CLUSTER AD M-CLUSTER *****
+
+MATCH (d2:dCluster)-[io:inputToOutputD]->(d:dCluster)-[id:isDofM]->(m:mCluster)  WITH d2,m, sum(io.value) AS value, sum(io.value_usd) AS value_usd MATCH (d2)-[id2:isDofM]->(m2:mCluster) MERGE (d2)-[ib:DOutputToMInput]->(m) set ib.value = value , ib.value_usd = value_usd
+
+***** RELAZIONI TRA D-CLUSTER E H-CLUSTER *****
+
+MATCH (h2:hCluster)-[io:inputToOutputH]->(h:hCluster)-[ih:isHofD]->(d:dCluster),(h2)-[ih2:isHofD]->(d2:dCluster) WHERE h2.htime <> h.htime WITH d2,h,io,sum(io.value) AS value,sum(io.value_usd) AS value_usd  MERGE (d2)-[ioy:DOutputToHInput]->(h) SET  ioy.value = value, ioy.value_usd = value_usd
+
+***** RELAZIONI TRA H-CLUSTER E D-CLUSTER *****
+
+MATCH (h2:hCluster)-[io:inputToOutputH]->(h:hCluster)-[ih:isHofD]->(d:dCluster)  WITH h2,d,sum(io.value) AS value, sum(io.value_usd) AS value_usd MATCH (h2)-[ih2:isHofD]->(d2:dCluster) MERGE (h2)-[ib:HOutputToDInput]->(d) set ib.value = value , ib.value_usd = value_usd
+
+***** RELAZIONI DA H-CLUSTER AD M-CLUSTER *****
+
+MATCH (h2:hCluster)-[io:inputToOutputH]->(h:hCluster)-[ih:isHofD]->(d:dCluster)-[id:isDofM]->(m:mCluster)  WITH h2,m,sum(io.value) AS value, sum(io.value_usd) AS value_usd MATCH (h2)-[ih2:isHofD]->(d2:dCluster)-[id2:isDofM]->(m2:mCluster) MERGE (h2)-[ib:HOutputToMInput]->(m) set ib.value = value, ib.value_usd = value_usd
+
+***** RELAZIONI DA M-CLUSTER AD H-CLUSTER *****
+
+MATCH (m2:mCluster)<-[id2:isDofM]-(d2:dCluster)<-[ih2:isHofD]-(h2:hCluster)-[io:inputToOutputH]->(h:hCluster)-[ih:isHofD]->(d:dCluster)-[id:isDofM]->(m:mCluster)-[iy:isMofY]->(y:yCluster) WITH m2,h, sum(io.value) as value, sum(io.value_usd) as value_usd   MERGE (m2)-[ioy:MOutputToHInput]->(h) SET  ioy.value = value, ioy.value_usd = value_usd
+
+								'QUERY'
+
+*****Hour-Cluster to Day-Cluster flows: presi in input una data(2024-01-05) e un arco temporale(dal 2023-12-10T02 al 2023-12-20T04, quindi con precisione a livello di ore), restituire tutti i flussi di bitcoin che partono dagli h-cluster scelti e che hanno come  punto di arrivo il d-cluster scelto.*****
+
+PROFILE MATCH (d:dCluster)-[im:isDofM]->(m:mCluster)-[iy:isMofY]->(y:yCluster) 
+WHERE y.ytime = '2024' AND m.mtime = '2024-01' 
+AND d.dtime = '2024-01-05' 
+WITH d 
+MATCH (d2)-[io:inputToOutputD]->(d) 
+WHERE d2.dtime >= '2023-12-10' AND d2.dtime <='2023-12-20' 
+RETURN d2.dtime,d.dtime,io.value,io.value_us
+
+
+*****Hour-Cluster to Day-Cluster flows: presi in input una data(2024-01-05) e un arco temporale(dal 2023-12-10T02 al 2023-12-20T04, quindi con precisione a livello di ore), restituire tutti i flussi di bitcoin che partono dagli h-cluster scelti e che hanno come  punto di arrivo il d-cluster scelto.*****
+
+MATCH (d:dCluster)-[id:isDofM]-(m:mCluster)-[im:isMofY]->(y:yCluster)
+WHERE y.ytime = '2024' AND m.mtime = '2024-01' AND d.dtime='2024-01-05' 
+WITH d 
+MATCH g = (h:hCluster)-[rels:HOutputToDInput]->(d)
+WHERE h.htime >='2023-12-10T02' AND h.htime <= '2023-12-20T04' 
+RETURN  h.htime,rels.value,rels.value_usd,d.dtime
+
+
+***** BLOCK VISUALIZATION *****
+
+FLUSSI CHE ARRIVANO AL BLOCCO SCELTO
+PROFILE
+WITH datetime('2024-01-05T09:43:19Z') - duration('PT12H') AS firstTwelveT
+MATCH  (b:Blocks)-[i:isBofH]->(h:hCluster)-[ih:isHofD]->(d:dCluster)-[id:isDofM]->(m:mCluster)-[im:isMofY]->(y:yCluster)
+
+WHERE y.ytime = '2024' AND m.mtime ='2024-01'  AND d.dtime ='2024-01-05' AND  h.htime  = '2024-01-05T09' AND b.time=datetime('2024-01-05T09:43:19Z')
+
+With b, firstTwelveT MATCH (h)-[i:inputToOutputB]->(b) 
+WHERE h.time >= firstTwelveT AND h.time<= b.time  RETURN h.id,h.time,b.id,b.time ORDER BY h.time
+
+FLUSSI CHE PARTONO DAL BLOCCO SCELTO
+PROFILE
+WITH datetime('2024-01-05T09:43:19Z') + duration('PT12H') AS secondTwelveT
+MATCH  (b:Blocks)-[i:isBofH]->(h:hCluster)-[ih:isHofD]->(d:dCluster)-[id:isDofM]->(m:mCluster)-[im:isMofY]->(y:yCluster)
+
+WHERE y.ytime = '2024' AND m.mtime ='2024-01'  AND d.dtime ='2024-01-05' AND  h.htime  = '2024-01-05T09' AND b.time=datetime('2024-01-05T09:43:19Z')
+
+With b, secondTwelveT MATCH (b)-[i:inputToOutputB]->(h) 
+WHERE h.time <= secondTwelveT AND h.time > b.time  RETURN b.id,b.time,h.id,h.time ORDER BY h.time
+
+
+*****COMBINED VISUALIZATION*****
+ 
+PROFILE WITH toString(datetime('2024-01-05T09:43:19Z') - duration('PT12H')) AS firstTwelveT,toString( datetime('2024-01-05T09:43:19Z') + duration('PT12H')) AS secondTwelveT    WITH split(firstTwelveT,'T') AS firstSplit, split(secondTwelveT,'T') AS secondSplit 
+WITH  split(firstSplit[0],'-') AS firstDate,split(firstSplit[1],':') AS firstTime ,split(secondSplit[0],'-') AS secondDate,split(secondSplit[1],'-') AS secondTime 
+MATCH  (b:Blocks)-[i:isBofH]->(h:hCluster)-[ih:isHofD]->(d:dCluster)-[id:isDofM]->(m:mCluster)-[im:isMofY]->(y:yCluster)
+
+WHERE y.ytime >= firstDate[0] AND y.ytime <= secondDate[0] AND m.mtime >= firstDate[0] + '-' + firstDate[1] AND m.mtime <= secondDate[0] + '-' + secondDate[1] AND d.dtime >= firstDate[0] + '-' + firstDate[1] + '-' + firstDate[2] AND d.dtime <= secondDate[0] + '-' + secondDate[1] + '-' + secondDate[2] AND  h.htime >= firstDate[0] + '-' + firstDate[1] + '-' + firstDate[2] +'T'+ firstTime[0] AND h.htime <= secondDate[0] + '-' + secondDate[1] + '-' + secondDate[2] + 'T' + secondTime[0] AND b.time >= (datetime('2024-01-05T09:43:19Z') - duration('PT12H')) AND b.time<= ( datetime('2024-01-05T09:43:19Z') + duration('PT12H')) 
+with collect(b) as blocchi, collect(ID(b)) as listBlocks
+CALL{
+  with blocchi,listBlocks
+  unwind blocchi as x
+  match (x)-[r:inputToOutputB]->(c)
+  where ID(c) in listBlocks
+  return x,c
+  }
+return x.id,x.time,c.id,c.time
+
+
+*****MINER VISUALIZATION*****
+
+PROFILE WITH toString(datetime('2024-01-05T09:43:19Z') - duration('PT12H')) AS firstTwelveT,toString( datetime('2024-01-05T09:43:19Z') + duration('PT12H')) AS secondTwelveT    
+WITH split(firstTwelveT,'T') AS firstSplit, split(secondTwelveT,'T') AS secondSplit 
+WITH  split(firstSplit[0],'-') AS firstDate,split(firstSplit[1],':') AS firstTime ,split(secondSplit[0],'-') AS secondDate,split(secondSplit[1],'-') AS secondTime 
+MATCH  (b:Blocks)-[i:isBofH]->(h:hCluster)-[ih:isHofD]->(d:dCluster)-[id:isDofM]->(m:mCluster)-[im:isMofY]->(y:yCluster)
+
+WHERE y.ytime >= firstDate[0] AND y.ytime <= secondDate[0] AND m.mtime >= firstDate[0] + '-' + firstDate[1] AND m.mtime <= secondDate[0] + '-' + secondDate[1] 
+AND d.dtime >= firstDate[0] + '-' + firstDate[1] + '-' + firstDate[2] AND d.dtime <= secondDate[0] + '-' + secondDate[1] + '-' + secondDate[2] 
+AND  h.htime >= firstDate[0] + '-' + firstDate[1] + '-' + firstDate[2] +'T'+ firstTime[0] AND h.htime <= secondDate[0] + '-' + secondDate[1] + '-' + secondDate[2] + 'T' + secondTime[0] 
+AND b.time >= (datetime('2024-01-05T09:43:19Z') - duration('PT12H')) AND b.time<= ( datetime('2024-01-05T09:43:19Z') + duration('PT12H')) AND b.guessed_miner='Binance'
+WITH collect(b) as blocchi, collect(ID(b)) as listBlocks
+
+CALL{
+  with blocchi,listBlocks
+  unwind blocchi as x
+  match (x)-[r:inputToOutputB]->(c)
+  where ID(c) in listBlocks
+  return x,c
+  }
+return x.id,x.time,c.id,c.time,x.guessed_miner,c.guessed_miner
+
+
+
+
+*****TX VISUALIZATION*****
+
+PROFILE WITH toString(datetime('2024-01-05T09:43:19Z') - duration('PT12H')) AS firstTwelveT,toString( datetime('2024-01-05T09:43:19Z') + duration('PT12H')) AS secondTwelveT    WITH split(firstTwelveT,'T') AS firstSplit, split(secondTwelveT,'T') AS secondSplit 
+WITH  split(firstSplit[0],'-') AS firstDate,split(firstSplit[1],':') AS firstTime ,split(secondSplit[0],'-') AS secondDate,split(secondSplit[1],'-') AS secondTime
+
+MATCH  (t:Transactions)-[ig:isContained]->(b:Blocks)-[i:isBofH]->(h:hCluster)-[ih:isHofD]->(d:dCluster)-[id:isDofM]->(m:mCluster)-[im:isMofY]->(y:yCluster)
+WHERE y.ytime >= firstDate[0] AND y.ytime <= secondDate[0] AND m.mtime >= firstDate[0] + '-' + firstDate[1] AND m.mtime <= secondDate[0] + '-' + secondDate[1] AND d.dtime >= firstDate[0] + '-' + firstDate[1] + '-' + firstDate[2] AND d.dtime <= secondDate[0] + '-' + secondDate[1] + '-' + secondDate[2] AND  h.htime >= firstDate[0] + '-' + firstDate[1] + '-' + firstDate[2] +'T'+ firstTime[0] AND h.htime <= secondDate[0] + '-' + secondDate[1] + '-' + secondDate[2] + 'T' + secondTime[0] AND b.time >= (datetime('2024-01-05T09:43:19Z') - duration('PT12H')) AND b.time<= ( datetime('2024-01-05T09:43:19Z') + duration('PT12H'))
+WITH collect(t) as tx, collect(ID(t)) as listTX
+
+CALL{
+  with tx,listTX
+  unwind tx as x
+  match (x)-[r:inputToOutputTX]->(c)
+  where ID(c) in listTX
+  return x,r,c
+  }
+return x.hash,r.value,c.hash
+
+
+QUERY PER VISUALIZZAZIONE DEGLI HOLDING TIMES
+--ISTANTANEOUS--
+PROFILE
+WITH datetime('2024-01-05T09:43:19Z') AS istantaneousBlocks
+MATCH  (b:Blocks)-[i:isBofH]->(h:hCluster)-[ih:isHofD]->(d:dCluster)-[id:isDofM]->(m:mCluster)-[im:isMofY]->(y:yCluster)
+WHERE y.ytime = '2024' AND m.mtime ='2024-01'  AND d.dtime ='2024-01-05' AND  h.htime  = '2024-01-05T09' AND b.time=datetime('2024-01-05T09:43:19Z')
+
+WITH b
+MATCH (c)-[i:inputToOutputB]->(b) WHERE c.time = b.time RETURN c,i
+
+--HYPERSHORT--
+PROFILE
+WITH datetime('2024-01-05T09:43:19Z') AS istantaneousBlocks
+MATCH  (b:Blocks)-[i:isBofH]->(h:hCluster)-[ih:isHofD]->(d:dCluster)-[id:isDofM]->(m:mCluster)-[im:isMofY]->(y:yCluster)
+WHERE y.ytime = '2024' AND m.mtime ='2024-01'  AND d.dtime ='2024-01-05' AND  h.htime  = '2024-01-05T09' AND b.time=datetime('2024-01-05T09:43:19Z')
+
+WITH b,istantaneousBlocks,istantaneousBlocks - duration('PT1H') AS hyperShBlocks
+MATCH (c:Blocks)-[i:inputToOutputB]->(b) WHERE c.time < istantaneousBlocks AND c.time >=hyperShBlocks
+RETURN c,i,b
+
+
+--SUPER SHORT--
+PROFILE
+WITH datetime('2024-01-05T09:43:19Z') AS istantaneousBlocks
+MATCH  (b:Blocks)-[i:isBofH]->(h:hCluster)-[ih:isHofD]->(d:dCluster)-[id:isDofM]->(m:mCluster)-[im:isMofY]->(y:yCluster)
+WHERE y.ytime = '2024' AND m.mtime ='2024-01'  AND d.dtime ='2024-01-05' AND  h.htime  = '2024-01-05T09' AND b.time=datetime('2024-01-05T09:43:19Z')
+
+WITH b,
+    split(toString((istantaneousBlocks - duration('PT1H')) - duration('PT24H')),':') AS hourBlocksStart, split(toString(istantaneousBlocks - duration('PT1H')),':') AS hourBlocksEnd
+MATCH (h:hCluster)-[ir:HOutputToBInput]->(b) WHERE h.htime <= hourBlocksEnd[0] AND h.htime >= hourBlocksStart[0]
+RETURN h,ir,b
+
+--SHORT--
+PROFILE
+WITH datetime('2024-01-05T09:43:19Z') AS istantaneousBlocks
+MATCH  (b:Blocks)-[i:isBofH]->(h:hCluster)-[ih:isHofD]->(d:dCluster)-[id:isDofM]->(m:mCluster)-[im:isMofY]->(y:yCluster)
+WHERE y.ytime = '2024' AND m.mtime ='2024-01'  AND d.dtime ='2024-01-05' AND  h.htime  = '2024-01-05T09' AND b.time=datetime('2024-01-05T09:43:19Z')
+
+WITH b,
+split(toString(((istantaneousBlocks - duration('PT1H')) - duration('PT24H'))-duration('P1M')),'T') AS dayBlocksStart, split(toString((istantaneousBlocks - duration('PT1H')) - duration('PT24H')),'T') AS dayBlocksEnd
+MATCH (d:dCluster)-[ir:DOutputToBInput]->(b) WHERE d.dtime <= dayBlocksEnd[0] AND  d.dtime >= dayBlocksStart[0]
+RETURN d,ir,b
+
+--MEDIUM--
+PROFILE
+WITH datetime('2024-01-05T09:43:19Z') AS istantaneousBlocks
+MATCH  (b:Blocks)-[i:isBofH]->(h:hCluster)-[ih:isHofD]->(d:dCluster)-[id:isDofM]->(m:mCluster)-[im:isMofY]->(y:yCluster)
+WHERE y.ytime = '2024' AND m.mtime ='2024-01'  AND d.dtime ='2024-01-05' AND  h.htime  = '2024-01-05T09' AND b.time=datetime('2024-01-05T09:43:19Z')
+
+WITH b,
+split(split(toString((((istantaneousBlocks - duration('PT1H')) - duration('PT24H'))-duration('P1M'))-duration('P12M')),'T')[0],'-') AS monthBlocksStart, split(split(toString(((istantaneousBlocks - duration('PT1H')) - duration('PT24H'))-duration('P1M')),'T')[0],'-')AS monthBlocksEnd
+MATCH (m:mCluster)-[ir:MOutputToBInput]->(b)
+WHERE m.mtime >= monthBlocksStart[0]+'-'+monthBlocksStart[1] AND m.mtime<= monthBlocksEnd[0]+'-'+monthBlocksEnd[1]
+RETURN m,ir,b
+
+--LONG--
+PROFILE
+WITH datetime('2024-01-05T09:43:19Z') AS istantaneousBlocks
+MATCH  (b:Blocks)-[i:isBofH]->(h:hCluster)-[ih:isHofD]->(d:dCluster)-[id:isDofM]->(m:mCluster)-[im:isMofY]->(y:yCluster)
+WHERE y.ytime = '2024' AND m.mtime ='2024-01'  AND d.dtime ='2024-01-05' AND  h.htime  = '2024-01-05T09' AND b.time=datetime('2024-01-05T09:43:19Z')
+
+WITH b,
+split(split(toString((((istantaneousBlocks - duration('PT1H')) - duration('PT24H'))-duration('P1M'))-duration('P12M')),'T')[0],'-') AS yearBlocksEnd
+MATCH (y:yCluster)-[ir:YOutputToBInput]->(b) WHERE y.ytimr<=yearBlocksEnd[0]
+RETURN y,ir,b
+
+*****Block ID flows: Preso in input un id di un blocco(824492), restituire i flussi di bitcoin che partono da m-cluster e arrivano al blocco selezionato.*****
+
+PROFILE WITH '824492' AS idToFind MATCH  (y:yCluster)
+WHERE idToFind>=y.minimum AND idToFind <=y.maximum
+WITH idToFind,y 
+MATCH (m:mCluster)-[im:isMofY]->(y) 
+WHERE idToFind >= m.minimum AND idToFind <= m.maximum
+WITH idToFind,m 
+MATCH (d:dCluster)-[id:isDofM]->(m) 
+WHERE idToFind >= d.minimum AND idToFind <=d.maximum WITH idToFind,d
+MATCH (h:hCluster)-[ih:isHofD]->(d)
+WHERE idToFind >= h.minimum AND idToFind<= h.maximum  
+WITH idToFind,h MATCH (b:Blocks)-[i:isBofH]->(h) 
+WHERE b.id = idToFind WITH b MATCH  p =  ()-[:MOutputToBInput]->(b)  RETURN p
+
