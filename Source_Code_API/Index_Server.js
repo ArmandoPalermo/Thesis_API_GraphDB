@@ -16,7 +16,7 @@
         },
         servers: [
           {
-            url: 'http://localhost:7474',
+            url: 'http://localhost:8000',
           },
         ],
     };
@@ -34,19 +34,24 @@
     const cors = require('cors');
     const URI = 'bolt://localhost';
     const USER = 'neo4j';
-    const PASSWORD = '**INSERISCI QUI LA TUA PASSWORD**';
+    const PASSWORD = INSERISCI LA TUA PASSWORD QUI;
     const neo4j = require('neo4j-driver');
     //Creazione di un'istanza del driver per la connessione al database Neo4j
     const driver = neo4j.driver(URI, neo4j.auth.basic(USER, PASSWORD),{ disableLosslessIntegers: true });
-    //Abilitazione della cache per 5 minuti
-    app.use(cache('5 minutes'));
+    
 
     //Definizione header per la gestione del CORS
-    app.use(cors());
     const corsOptions = {
         origin: '*',
-        optionsSuccessStatus: 200, 
+        methods: "GET,POST,PUT,DELETE,OPTIONS",
+        allowedHeaders: "Content-Type, Authorization",
     };
+
+app.use(cors(corsOptions));
+
+
+    //Abilitazione della cache per 5 minuti
+    app.use(cache('5 minutes'));
 
 
       /**
@@ -79,7 +84,7 @@
      *      500:
      *        description: Server Error
      */
-    app.get('/api/flows/:ClusterToCluster',cors(corsOptions), (req, res) => {
+    app.get('/api/flows/:ClusterToCluster', (req, res) => {
         const flowType = req.params.ClusterToCluster;
         const {timestamp, rangeTimestamp } = req.query;
 
@@ -106,7 +111,7 @@
             });
     });
 
-    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+    app.use('/api-docs',swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
     //Definizione endpoint per la richiesta delle visualizzazioni di BITVAS 
      /**
@@ -139,23 +144,28 @@
      *      500:
      *        description: Server Error
      */
-    app.get('/api/visualizations/:nomeVisual',cors(corsOptions), (req, res) => {
+    app.get('/api/visualizations/:nomeVisual', (req, res) => {
         const { blockRef, miner } = req.query;
         const visualizationName = req.params.nomeVisual;
+        //Istanza di una nuova sessione del server con il driver
         const session = driver.session();
         let query;
+        //Definizione della query in base al tipo di richiesta(valore di visualizationName)
         query = query_controller.getVisualization(visualizationName,blockRef,miner);
     
+        //Esecuzione della query e creazione dei JSON in base al tipo di richiesta
         session.run(query)
             .then(result => {
-                //TODO SWITCH CASE
-                res.json(jsonController.getVisualizationJSON(visualizationName,result));
+                //Invio della risposta al client sotto forma di JSON
+                res.json(jsonController.getVisualizationJSON(visualizationName,result,blockRef));
             })
             .catch(error => {
+                //Gestione dell'errore in caso di fallimento della query
                 console.error('Error executing query:', error);
                 res.status(500).json({ error: 'An error occurred' });
             })
             .finally(() => {
+                //Chiusura della sessione
                 session.close();
             });
     });
@@ -192,7 +202,7 @@
      *      500:
      *        description: Server Error
      */
-    app.get('/api/entities/:entityName',cors(corsOptions), (req, res) => {
+    app.get('/api/entities/:entityName',(req, res) => {
         const {startTimestamp, endTimestamp } = req.query;
         const entityName = req.params.entityName;
         //Creazione di una nuova sessione del server
@@ -221,9 +231,9 @@
             });
     });
 
-    //Avvio del server sulla porta 7474
-    app.listen(7474, () => {
-        console.log('Server is running on port 7474');
+    //Avvio del server sulla porta 8000
+    app.listen(8000, () => {
+        console.log('Server is running on port 8000');
     });
 
     //swaggerDocs.getDocs(app, 7474);

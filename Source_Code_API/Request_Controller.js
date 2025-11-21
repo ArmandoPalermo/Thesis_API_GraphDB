@@ -1,6 +1,6 @@
 //Classe che può essere utilizzata per effettuare richieste HTTP GET al server
 // Ogni metodo della classe corrisponde ad una richiesta diversa GET al server
-class Request_Controller {
+ export class Request_Controller {
 
     constructor() {
         this.xhr = new XMLHttpRequest();
@@ -69,23 +69,23 @@ class Request_Controller {
             switch (typeFirstCluster) {
                 case 'BlockTimestamp':
                     if(typeSecondCluster === 'BlockTimestamp') {
-                        queryString = 'http://localhost:7474/api/flows/BlockToBlock?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
+                        queryString = 'http://localhost:8000/api/flows/BlockToBlock?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
                     }
 
                     if(typeSecondCluster === 'HClusterTimestamp') {
-                        queryString = 'http://localhost:7474/api/flows/HourToBlock?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
+                        queryString = 'http://localhost:8000/api/flows/HourToBlock?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
                     }
 
                     if(typeSecondCluster === 'DClusterTimestamp') {
-                        queryString = 'http://localhost:7474/api/flows/DayToBlock?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
+                        queryString = 'http://localhost:8000/api/flows/DayToBlock?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
                     }
 
                     if(typeSecondCluster === 'MClusterTimestamp') {
-                        queryString = 'http://localhost:7474/api/flows/MonthToBlock?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
+                        queryString = 'http://localhost:8000/api/flows/MonthToBlock?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
                     }
 
                     if(typeSecondCluster === 'YClusterTimestamp') {
-                        queryString = 'http://localhost:7474/api/flows/YearToBlock?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
+                        queryString = 'http://localhost:8000/api/flows/YearToBlock?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
 
                     }
 
@@ -93,90 +93,90 @@ class Request_Controller {
                 case 'HClusterTimestamp':
                     
                     if(typeSecondCluster === 'BlockTimestamp') {
-                        queryString = 'http://localhost:7474/api/flows/BlockToHour?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
+                        queryString = 'http://localhost:8000/api/flows/BlockToHour?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
                     }
 
                     if(typeSecondCluster === 'HClusterTimestamp') {
-                        queryString = 'http://localhost:7474/api/flows/HourToHour?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
+                        queryString = 'http://localhost:8000/api/flows/HourToHour?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
                     }
 
                     if(typeSecondCluster === 'DClusterTimestamp') {
-                        queryString = 'http://localhost:7474/api/flows/DayToHour?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
+                        queryString = 'http://localhost:8000/api/flows/DayToHour?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
                     }
 
                     if(typeSecondCluster === 'MClusterTimestamp') {
-                        queryString = 'http://localhost:7474/api/flows/MonthToHour?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
+                        queryString = 'http://localhost:8000/api/flows/MonthToHour?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
                     }
 
                     if(typeSecondCluster === 'YClusterTimestamp') {
-                        queryString = 'http://localhost:7474/api/flows/YearToHour?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
+                        queryString = 'http://localhost:8000/api/flows/YearToHour?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
                     }
 
                     break;
                 case 'DClusterTimestamp':
                     
                     if(typeSecondCluster === 'BlockTimestamp') {
-                        queryString = 'http://localhost:7474/api/flows/BlockToDay?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
+                        queryString = 'http://localhost:8000/api/flows/BlockToDay?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
                     }
 
                     if(typeSecondCluster === 'HClusterTimestamp') {
-                        queryString = 'http://localhost:7474/api/flows/HourToDay?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
+                        queryString = 'http://localhost:8000/api/flows/HourToDay?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
                     }
 
                     if(typeSecondCluster === 'DClusterTimestamp') {
-                        queryString = 'http://localhost:7474/api/flows/DayToDay?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
+                        queryString = 'http://localhost:8000/api/flows/DayToDay?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
                     }
 
                     if(typeSecondCluster === 'MClusterTimestamp') {
-                        queryString = 'http://localhost:7474/api/flows/MonthToDay?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
+                        queryString = 'http://localhost:8000/api/flows/MonthToDay?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
                     }
 
                     if(typeSecondCluster === 'YClusterTimestamp') {
-                        queryString = 'http://localhost:7474/api/flows/YearToDay?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
+                        queryString = 'http://localhost:8000/api/flows/YearToDay?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
                     }
 
                     break;
                 case 'MClusterTimestamp':
                     if(typeSecondCluster === 'BlockTimestamp') {
-                        queryString = 'http://localhost:7474/api/flows/BlockToMonth?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
+                        queryString = 'http://localhost:8000/api/flows/BlockToMonth?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
                     }
 
                     if(typeSecondCluster === 'HClusterTimestamp') {
-                        queryString = 'http://localhost:7474/api/flows/HourToMonth?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
+                        queryString = 'http://localhost:8000/api/flows/HourToMonth?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
                     }
 
                     if(typeSecondCluster === 'DClusterTimestamp') {
-                        queryString = 'http://localhost:7474/api/flows/DayToMonth?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
+                        queryString = 'http://localhost:8000/api/flows/DayToMonth?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
                     }
 
                     if(typeSecondCluster === 'MClusterTimestamp') {
-                        queryString = 'http://localhost:7474/api/flows/MonthToMonth?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
+                        queryString = 'http://localhost:8000/api/flows/MonthToMonth?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
                     }
 
                     if(typeSecondCluster === 'YClusterTimestamp') {
-                        queryString = 'http://localhost:7474/api/flows/YearToMonth?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
+                        queryString = 'http://localhost:8000/api/flows/YearToMonth?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
                     }   
 
                     break;
                 case 'YClusterTimestamp':
                     if(typeSecondCluster === 'BlockTimestamp') {
-                        queryString = 'http://localhost:7474/api/flows/BlockToYear?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
+                        queryString = 'http://localhost:8000/api/flows/BlockToYear?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
                     }
 
                     if(typeSecondCluster === 'HClusterTimestamp') {
-                        queryString = 'http://localhost:7474/api/flows/HourToYear?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
+                        queryString = 'http://localhost:8000/api/flows/HourToYear?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
                     }
 
                     if(typeSecondCluster === 'DClusterTimestamp') {
-                        queryString = 'http://localhost:7474/api/flows/DayToYear?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
+                        queryString = 'http://localhost:8000/api/flows/DayToYear?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
                     }
 
                     if(typeSecondCluster === 'MClusterTimestamp') {
-                        queryString = 'http://localhost:7474/api/flows/MonthToYear?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
+                        queryString = 'http://localhost:8000/api/flows/MonthToYear?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
                     }
 
                     if(typeSecondCluster === 'YClusterTimestamp') {
-                        queryString = 'http://localhost:7474/api/flows/YearToYear?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
+                        queryString = 'http://localhost:8000/api/flows/YearToYear?&timestamp='+ firstClusterTimestamp +'&rangeTimestamp='+secondClusterTimestampRange+'';
                     }
 
                     break;
@@ -209,23 +209,26 @@ class Request_Controller {
 
 
     getVisualization(VisualizationName,blockRef,miner){
-
+        console.log('sto cercando ', blockRef);
         var queryString = '';
         switch(VisualizationName){
             case 'CombinedVisualization':
-                queryString = 'http://localhost:7474/api/visualizations/CombinedVisualization?blockRef='+ blockRef +'';
+                console.log("querystryng inviata")
+                queryString = 'http://localhost:8000/api/visualizations/CombinedVisualization?blockRef='+ blockRef +'';
+                
                 break;
             case 'MinerVisualization':
-                queryString = 'http://localhost:7474/api/visualizations/MinerVisualization?blockRef='+ blockRef +'&miner='+miner+'';
+                queryString = 'http://localhost:8000/api/visualizations/MinerVisualization?blockRef='+ blockRef +'&miner='+miner+'';
+                console.log(queryString);
                 break;
             case 'TXVisualization':
-                queryString = 'http://localhost:7474/api/visualizations/TXVisualization?blockRef='+ blockRef +'';
+                queryString = 'http://localhost:8000/api/visualizations/TXVisualization?blockRef='+ blockRef +'';
                 break;
             case 'BlockVisualizationFirstPart':
-                queryString = 'http://localhost:7474/api/visualizations/BlockVisualizationFirstPart?blockRef='+ blockRef +'';
+                queryString = 'http://localhost:8000/api/visualizations/BlockVisualizationFirstPart?blockRef='+ blockRef +'';
                 break;
             case 'BlockVisualizationSecondPart':
-                queryString = 'http://localhost:7474/api/visualizations/BlockVisualizationSecondPart?blockRef='+ blockRef +'';
+                queryString = 'http://localhost:8000/api/visualizations/BlockVisualizationSecondPart?blockRef='+ blockRef +'';
                 break;
             default:
                 console.log('Errore');
@@ -258,22 +261,22 @@ class Request_Controller {
         var queryString = '';
         switch(entityName){
             case 'Block':
-                queryString = 'http://localhost:7474/api/entities/Block?startTimestamp='+ startTimestamp +'&endTimestamp='+endTimestamp+'';
+                queryString = 'http://localhost:8000/api/entities/Block?startTimestamp='+ startTimestamp +'&endTimestamp='+endTimestamp+'';
                 break;
             case 'TX':
-                queryString = 'http://localhost:7474/api/entities/TX?startTimestamp='+ startTimestamp +'&endTimestamp='+endTimestamp+'';
+                queryString = 'http://localhost:8000/api/entities/TX?startTimestamp='+ startTimestamp +'&endTimestamp='+endTimestamp+'';
                 break;
             case 'HCluster':
-                queryString = 'http://localhost:7474/api/entities/HCluster?startTimestamp='+ startTimestamp +'&endTimestamp='+endTimestamp+'';
+                queryString = 'http://localhost:8000/api/entities/HCluster?startTimestamp='+ startTimestamp +'&endTimestamp='+endTimestamp+'';
                 break;
             case 'DCluster':
-                queryString = 'http://localhost:7474/api/entities/DCluster?startTimestamp='+ startTimestamp +'&endTimestamp='+endTimestamp+'';
+                queryString = 'http://localhost:8000/api/entities/DCluster?startTimestamp='+ startTimestamp +'&endTimestamp='+endTimestamp+'';
                 break;
             case 'MCluster':
-                queryString = 'http://localhost:7474/api/entities/MCluster?startTimestamp='+ startTimestamp +'&endTimestamp='+endTimestamp+'';
+                queryString = 'http://localhost:8000/api/entities/MCluster?startTimestamp='+ startTimestamp +'&endTimestamp='+endTimestamp+'';
                 break;
             case 'YCluster':
-                queryString = 'http://localhost:7474/api/entities/YCluster?startTimestamp='+ startTimestamp +'&parendTimestampam3='+endTimestamp+'';
+                queryString = 'http://localhost:8000/api/entities/YCluster?startTimestamp='+ startTimestamp +'&parendTimestampam3='+endTimestamp+'';
                 break;
             default:
                 console.log('Errore');
