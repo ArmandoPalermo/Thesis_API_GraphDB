@@ -34,7 +34,7 @@
     const cors = require('cors');
     const URI = 'bolt://localhost';
     const USER = 'neo4j';
-    const PASSWORD = INSERISCI LA TUA PASSWORD QUI;
+    const PASSWORD = '*** INSERISCI LA TUA PASSWORD ***';
     const neo4j = require('neo4j-driver');
     //Creazione di un'istanza del driver per la connessione al database Neo4j
     const driver = neo4j.driver(URI, neo4j.auth.basic(USER, PASSWORD),{ disableLosslessIntegers: true });
@@ -47,7 +47,7 @@
         allowedHeaders: "Content-Type, Authorization",
     };
 
-app.use(cors(corsOptions));
+    app.use(cors(corsOptions));
 
 
     //Abilitazione della cache per 5 minuti
