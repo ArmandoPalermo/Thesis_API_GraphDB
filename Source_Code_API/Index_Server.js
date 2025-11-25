@@ -231,10 +231,19 @@
             });
     });
 
+    //Reindirizzamento alla documentazione della API
+    app.get('/', (req, res) => {
+        res.redirect('/api-docs');
+    });
+
     //Avvio del server sulla porta 8000
     app.listen(8000, () => {
         console.log('Server is running on port 8000');
     });
+
+
+   
+
 
     //swaggerDocs.getDocs(app, 7474);
 
